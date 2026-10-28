@@ -27,6 +27,11 @@ func (a *App) createResource(w http.ResponseWriter, r *http.Request) {
 		fail(w, 403, "forbidden", "Only owners or centre staff can list equipment.")
 		return
 	}
+	// Assigning an owner role does not replace the centre's verification step.
+	if u.Role == "owner" && !u.Verified {
+		fail(w, 403, "verification_required", "Ask a centre manager to verify your owner profile before listing equipment.")
+		return
+	}
 	var in ResourceInput
 	if !decode(w, r, &in) {
 		return
