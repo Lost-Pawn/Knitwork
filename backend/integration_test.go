@@ -42,6 +42,7 @@ func TestFullSharingLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Setenv("DEMO_SEED", "true")
+	t.Setenv("HELP_API_KEY", "")
 	t.Setenv("ADMIN_EMAIL", "")
 	t.Setenv("ADMIN_PASSWORD", "")
 	if e = a.seed(ctx); e != nil {
@@ -218,18 +219,83 @@ func TestFullSharingLifecycle(t *testing.T) {
 			t.Fatal("unsupported question was answered")
 		}
 	})
-	t.Run("reminders are idempotent", func(t *testing.T) {
-		var before, after int
-		_ = db.QueryRow(ctx, "SELECT count(*) FROM notifications").Scan(&before)
-		if e = a.reminderTick(ctx); e != nil {
+	t.Run("shared business quota prevents extra accounts bypassing limits", func(t *testing.T) {
+		_, e := db.Exec(ctx, "UPDATE users SET allocation_group='same-business' WHERE id IN ($1,$2)", ashaUser.ID, raviUser.ID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		_, e = db.Exec(ctx, "UPDATE resources SET weekly_hours=1 WHERE id=3")
+		if e != nil {
+			t.Fatal(e)
+		}
+		b1 := request(asha, 3, start.Add(2*time.Hour), false)
+		act(manager, b1, ActionInput{Action: "approve", Reason: "First business allocation"}, 200)
+		b2 := request(ravi, 3, start.Add(4*time.Hour), false)
+		act(manager, b2, ActionInput{Action: "approve", Reason: "Same business second account"}, 409)
+		act(manager, b1, ActionInput{Action: "cancel", Reason: "Quota test completed"}, 200)
+		act(manager, b2, ActionInput{Action: "reject", Reason: "Quota test completed"}, 200)
+		_, _ = db.Exec(ctx, "UPDATE users SET allocation_group='' WHERE id IN ($1,$2)", ashaUser.ID, raviUser.ID)
+		_, _ = db.Exec(ctx, "UPDATE resources SET weekly_hours=8 WHERE id=3")
+	})
+	t.Run("revoked eligibility prevents checkin", func(t *testing.T) {
+		id := request(asha, 3, start.Add(2*time.Hour), false)
+		act(manager, id, ActionInput{Action: "approve", Reason: "Membership verified initially"}, 200)
+		_, _ = db.Exec(ctx, "UPDATE users SET verified=false WHERE id=$1", ashaUser.ID)
+		act(manager, id, ActionInput{Action: "checkin", Reason: "Try early handover after revocation", Note: "Equipment condition checked", Image: photo, Checklist: true}, 409)
+		_, _ = db.Exec(ctx, "UPDATE users SET verified=true WHERE id=$1", ashaUser.ID)
+		act(manager, id, ActionInput{Action: "cancel", Reason: "Revocation test completed"}, 200)
+	})
+	t.Run("operator cannot be allocated to two machines", func(t *testing.T) {
+		s := start.AddDate(0, 0, 1)
+		one := request(asha, 1, s, true)
+		two := request(ravi, 2, s, true)
+		act(manager, one, ActionInput{Action: "approve", Reason: "Operator reserved on embroidery", OperatorID: &operator}, 200)
+		act(manager, two, ActionInput{Action: "approve", Reason: "Same operator on sewing machine", OperatorID: &operator}, 409)
+		act(manager, one, ActionInput{Action: "cancel", Reason: "Operator conflict test complete"}, 200)
+		act(manager, two, ActionInput{Action: "reject", Reason: "Operator conflict test complete"}, 200)
+	})
+	t.Run("reminders are idempotent with overdue records", func(t *testing.T) {
+		var id int64
+		past := time.Now().Add(-3 * time.Hour)
+		e := db.QueryRow(ctx, "INSERT INTO bookings(resource_id,borrower_id,starts_at,ends_at,busy_until,purpose,status) VALUES(3,$1,$2,$3,$3,'Overdue test','in_use') RETURNING id", ashaUser.ID, past, past.Add(time.Hour)).Scan(&id)
+		if e != nil {
 			t.Fatal(e)
 		}
 		if e = a.reminderTick(ctx); e != nil {
 			t.Fatal(e)
 		}
-		_ = db.QueryRow(ctx, "SELECT count(*) FROM notifications").Scan(&after)
-		if after < before {
-			t.Fatal("notification loss")
+		if e = a.reminderTick(ctx); e != nil {
+			t.Fatal(e)
+		}
+		var count int
+		_ = db.QueryRow(ctx, "SELECT count(*) FROM notifications WHERE booking_id=$1 AND kind='overdue'", id).Scan(&count)
+		if count != 2 {
+			t.Fatalf("want borrower and owner notification once, got %d", count)
+		}
+		_, _ = db.Exec(ctx, "UPDATE bookings SET status='completed' WHERE id=$1", id)
+	})
+	t.Run("model generation and provider fallback", func(t *testing.T) {
+		provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var payload map[string]any
+			json.NewDecoder(r.Body).Decode(&payload)
+			if !strings.Contains(fmt.Sprint(payload["messages"]), "Passages:") {
+				t.Error("missing retrieved context")
+			}
+			respond(w, 200, map[string]any{"choices": []any{map[string]any{"message": map[string]string{"content": "Return the equipment with a condition photo [1]."}}}})
+		}))
+		defer provider.Close()
+		t.Setenv("HELP_API_KEY", "fictional-test-key")
+		t.Setenv("HELP_API_BASE_URL", provider.URL)
+		t.Setenv("HELP_MODEL", "test-model")
+		var result map[string]any
+		json.Unmarshal(must(ravi, "POST", "/api/help/chat", map[string]string{"question": "return equipment", "locale": "en"}, 200), &result)
+		if result["mode"] != "rag" {
+			t.Fatal("configured model was not used")
+		}
+		provider.Close()
+		json.Unmarshal(must(ravi, "POST", "/api/help/chat", map[string]string{"question": "return equipment", "locale": "en"}, 200), &result)
+		if result["mode"] != "local_fallback" {
+			t.Fatal("provider failure did not preserve local help")
 		}
 	})
 	t.Run("logout revokes session", func(t *testing.T) {
