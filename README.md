@@ -206,4 +206,11 @@ This project was implemented with substantial AI assistance using Codex for desi
 
 Review package licences before distribution. Record each participant's actual work in `docs/TEAM.md`; the generated history does not establish individual team contributions. Follow the hackathon's official build-window and disclosure requirements.
 
-See `docs/SRS.md` for requirements, `docs/API.md` for endpoints and `docs/DEMO.md` for presentation guidance.
+## Project documents
+
+- [Requirements specification](docs/SRS.md) · [Download Word document](docs/Knitwork-SRS.docx)
+- [Product and implementation report](docs/REPORT.md) · [Download Word document](docs/Knitwork-Report.docx)
+- [API reference](docs/API.md)
+- [Presentation and demo guide](docs/DEMO.md)
+- [Verification results and outstanding checks](docs/VALIDATION.md)
+- [Team details to complete](docs/TEAM.md)
