@@ -5,6 +5,7 @@
 !.env.test
 node_modules/
 .next/
+*.tsbuildinfo
 out/
 coverage/
 *.log

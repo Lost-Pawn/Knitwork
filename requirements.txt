@@ -11,3 +11,4 @@ Next.js 16.4.3
 React 19.3.1
 TypeScript 5.9.3
 Playwright 1.58.2
+Prettier 3.8.1
