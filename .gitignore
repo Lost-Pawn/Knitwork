@@ -1,0 +1,14 @@
+.env
+.env.local
+.env.production
+!.env.example
+!.env.test
+node_modules/
+.next/
+out/
+coverage/
+*.log
+backend/knitwork
+playwright-report/
+test-results/
+.DS_Store
