@@ -104,6 +104,34 @@ func TestFullSharingLifecycle(t *testing.T) {
 	_ = png.Encode(&imageBuf, image.NewRGBA(image.Rect(0, 0, 12, 12)))
 	photo := "data:image/png;base64," + base64.StdEncoding.EncodeToString(imageBuf.Bytes())
 	operator := int64(1)
+	t.Run("verified owners can list equipment", func(t *testing.T) {
+		owner := login("owner@knitwork.test")
+		listing := ResourceInput{
+			Name: "Shared finishing table", Category: "cutting", Description: "A table for finishing small garment batches",
+			Location: "Sakhi Garment Centre", Rules: "Keep the work surface clear", OperatorPolicy: "none",
+			MaxHours: 3, WeeklyHours: 6, OpenHour: 8, CloseHour: 20,
+			AvailableFrom: start.Format("2006-01-02"), AvailableTo: start.AddDate(0, 1, 0).Format("2006-01-02"),
+		}
+		setVerified := func(verified bool) {
+			t.Helper()
+			if _, err := db.Exec(ctx, "UPDATE users SET verified=$1 WHERE email='owner@knitwork.test'", verified); err != nil {
+				t.Fatal(err)
+			}
+		}
+		setVerified(false)
+		defer setVerified(true)
+		body := must(owner, "POST", "/api/resources", listing, 403)
+		if !bytes.Contains(body, []byte("verification_required")) {
+			t.Fatalf("missing owner verification explanation: %s", body)
+		}
+		setVerified(true)
+		var result map[string]int64
+		json.Unmarshal(must(owner, "POST", "/api/resources", listing, 201), &result)
+		var listed int
+		if err := db.QueryRow(ctx, "SELECT count(*) FROM audit WHERE resource_id=$1 AND action='resource_listed'", result["id"]).Scan(&listed); err != nil || listed != 1 {
+			t.Fatalf("resource listing audit: count=%d error=%v", listed, err)
+		}
+	})
 	t.Run("authentication and role boundaries", func(t *testing.T) {
 		must(nil, "GET", "/api/resources", nil, 401)
 		must(asha, "GET", "/api/members", nil, 403)
