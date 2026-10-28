@@ -8,6 +8,7 @@ export const languages = {
 };
 export type Locale = keyof typeof languages;
 const rows = `
+notice_update|Your booking or membership has an update. Open the record to review the details.|आपकी बुकिंग या सदस्यता में बदलाव हुआ है। विवरण के लिए रिकॉर्ड खोलें।|तुमच्या आरक्षणात किंवा सदस्यत्वात बदल झाला आहे. तपशीलांसाठी नोंद उघडा.|আপনার বুকিং বা সদস্যপদে পরিবর্তন হয়েছে। বিস্তারিত দেখতে রেকর্ড খুলুন।|உங்கள் முன்பதிவு அல்லது உறுப்பினர் பதிவில் மாற்றம் உள்ளது. விவரங்களைப் பார்க்க பதிவைத் திறக்கவும்.|మీ బుకింగ్ లేదా సభ్యత్వంలో మార్పు ఉంది. వివరాల కోసం రికార్డు తెరవండి.
 allocation_group|Verified business or group quota key|सत्यापित व्यवसाय या समूह का कोटा कोड|पडताळलेल्या व्यवसाय किंवा गटाचा कोटा संकेत|যাচাইকৃত ব্যবসা বা দলের কোটা কোড|சரிபார்த்த தொழில் அல்லது குழு ஒதுக்கீட்டு குறியீடு|ధృవీకరించిన వ్యాపారం లేదా సమూహ కోటా కీ
 explore|Explore equipment|उपकरण खोजें|उपकरणे शोधा|সরঞ্জাম খুঁজুন|கருவிகளைத் தேடு|పరికరాలు వెతకండి
 bookings|My bookings|मेरी बुकिंग|माझी आरक्षणे|আমার বুকিং|எனது முன்பதிவுகள்|నా బుకింగ్‌లు
@@ -167,7 +168,21 @@ for (const row of rows.trim().split("\n")) {
     (locale, i) => (dictionaries[locale][key] = values[i]),
   );
 }
+const aliases: Record<string, string> = {
+  resource_listed: "add_resource",
+  resource_readiness_changed: "maintenance",
+  member_reviewed: "review",
+  operator_updated: "operators",
+  incident_reported: "incident",
+  incident_resolved: "resolved",
+  incident_escalated: "escalated",
+  verification: "review",
+  queue_available: "waitlist",
+  reminder: "bookings",
+};
 export function translate(locale: Locale, key: string) {
+  key = aliases[key] || key;
+  if (key.startsWith("notice_")) key = "notice_update";
   return (
     dictionaries[locale][key] ||
     dictionaries.en[key] ||

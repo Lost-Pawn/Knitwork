@@ -397,7 +397,7 @@ export default function Home() {
                         <Icon name="notifications" />
                         <div>
                           <strong>{t(n.kind)}</strong>
-                          <TextContent text={n.message} />
+                          <p>{t("notice_" + n.kind)}</p>
                           <small>{indianDate(n.created_at, locale)}</small>
                           {n.booking_id && (
                             <button

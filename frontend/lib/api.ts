@@ -36,7 +36,23 @@ export function canManage(role: string, id: number, owner: number) {
   );
 }
 export function localISO(date: string, time: string) {
-  return new Date(date + "T" + time + ":00+05:30").toISOString();
+  if (!date || !time) return "";
+  const parsed = new Date(date + "T" + time + ":00+05:30");
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+}
+export function estimateFee(
+  date: string,
+  start: string,
+  end: string,
+  rate: number,
+) {
+  const amount = Math.ceil(
+    ((new Date(localISO(date, end)).getTime() -
+      new Date(localISO(date, start)).getTime()) /
+      3600000) *
+      rate,
+  );
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
 }
 export function indianDate(value: string, locale = "en") {
   return new Intl.DateTimeFormat(locale + "-IN", {

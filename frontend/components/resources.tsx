@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   api,
+  estimateFee,
   canManage,
   indianDate,
   isStaff,
@@ -369,16 +370,7 @@ export default function Resources({
               <div className="estimate">
                 {t("estimate")}{" "}
                 <strong>
-                  ₹
-                  {Math.max(
-                    0,
-                    Math.ceil(
-                      ((new Date(localISO(date, end)).getTime() -
-                        new Date(localISO(date, start)).getTime()) /
-                        3600000) *
-                        selected.hourly_rate,
-                    ),
-                  )}
+                  ₹{estimateFee(date, start, end, selected.hourly_rate)}
                 </strong>
               </div>
               <ErrorBox error={error} />
