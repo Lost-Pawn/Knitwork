@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: knitwork
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: knitwork-db
+          property: connectionString
+      - key: APP_ENV
+        value: production
+      - key: DEMO_SEED
+        value: 'false'
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: HELP_API_BASE_URL
+        sync: false
+      - key: HELP_API_KEY
+        sync: false
+      - key: HELP_MODEL
+        sync: false
+databases:
+  - name: knitwork-db
+    plan: basic-256mb
+    databaseName: knitwork
+    user: knitwork
+    postgresMajorVersion: '17'

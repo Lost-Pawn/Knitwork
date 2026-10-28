@@ -1,0 +1,10 @@
+.git
+.env
+.env.local
+.env.production
+**/node_modules
+**/.next
+**/out
+**/test-results
+**/playwright-report
+*.log
