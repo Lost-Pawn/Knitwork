@@ -294,9 +294,11 @@ export function Operators({
 export function Profile({
   user,
   onChange,
+  onLogout,
 }: {
   user: User;
   onChange: () => Promise<void>;
+  onLogout: () => Promise<void>;
 }) {
   const { t, locale, notify } = useUI();
   const [error, setError] = useState<unknown>(null);
@@ -308,6 +310,10 @@ export function Profile({
         <p>
           {user.name} · {user.email}
         </p>
+        <button className="secondary" onClick={onLogout}>
+          <Icon name="logout" />
+          {t("logout")}
+        </button>
       </div>
       <div className="surface">
         <Status value={user.verified ? "verified" : "unverified"} />

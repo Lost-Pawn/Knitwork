@@ -134,6 +134,21 @@ export default function Home() {
     setInitialID(undefined);
     setError(null);
   };
+  async function logout() {
+    try {
+      await api("/auth/logout", "POST", {});
+      setUser(null);
+      setBookings([]);
+      setResources([]);
+      setMembers([]);
+      setOperators([]);
+      setNotices([]);
+      setToast("");
+      setError(null);
+    } catch (err) {
+      setError(err);
+    }
+  }
   return (
     <UIContext.Provider
       value={{ locale, t, translation: config.translation, notify: setToast }}
@@ -304,18 +319,7 @@ export default function Home() {
               </div>
               <button
                 className="nav-item"
-                onClick={async () => {
-                  try {
-                    await api("/auth/logout", "POST", {});
-                    setUser(null);
-                    setBookings([]);
-                    setResources([]);
-                    setMembers([]);
-                    setError(null);
-                  } catch (err) {
-                    setError(err);
-                  }
-                }}
+                onClick={logout}
               >
                 <Icon name="logout" />
                 {t("logout")}
@@ -372,7 +376,9 @@ export default function Home() {
                   canEdit={["manager", "admin"].includes(user.role)}
                 />
               )}{" "}
-              {page === "profile" && <Profile user={user} onChange={refresh} />}{" "}
+              {page === "profile" && (
+                <Profile user={user} onChange={refresh} onLogout={logout} />
+              )}{" "}
               {page === "help" && <Help />}
               {page === "notifications" && (
                 <>
