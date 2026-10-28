@@ -25,6 +25,7 @@ type User struct {
 	Business         string   `json:"business"`
 	Locale           string   `json:"locale"`
 	Qualifications   []string `json:"qualifications"`
+	AllocationGroup  string   `json:"allocation_group"`
 	VerificationNote string   `json:"verification_note"`
 }
 type ResourceInput struct {

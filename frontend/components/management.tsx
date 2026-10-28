@@ -76,6 +76,7 @@ export function Members({
                   .map((s) => s.trim())
                   .filter(Boolean),
                 reason: f.get("reason"),
+                allocation_group: f.get("allocation_group"),
               };
               if (user.role === "admin" && user.id !== selected.id) {
                 b.role = f.get("role");
@@ -101,6 +102,13 @@ export function Members({
               />
               {t("verified")}
             </label>
+            <Field label={t("allocation_group")}>
+              <input
+                name="allocation_group"
+                defaultValue={selected.allocation_group}
+                maxLength={100}
+              />
+            </Field>
             <Field label={t("qualification_hint")}>
               <input
                 name="qualifications"

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -24,17 +25,22 @@ func (a *App) verifyMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Verified       bool     `json:"verified"`
-		Qualifications []string `json:"qualifications"`
-		Reason         string   `json:"reason"`
-		Role           string   `json:"role"`
-		Suspended      *bool    `json:"suspended"`
+		AllocationGroup string   `json:"allocation_group"`
+		Verified        bool     `json:"verified"`
+		Qualifications  []string `json:"qualifications"`
+		Reason          string   `json:"reason"`
+		Role            string   `json:"role"`
+		Suspended       *bool    `json:"suspended"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
 	if len(strings.TrimSpace(in.Reason)) < 5 {
 		fail(w, 400, "reason_required", "Record how membership and training were checked.")
+		return
+	}
+	if len(in.AllocationGroup) > 100 {
+		fail(w, 400, "invalid_input", "Keep allocation groups under 100 characters.")
 		return
 	}
 	if in.Qualifications == nil {
@@ -59,9 +65,9 @@ func (a *App) verifyMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(ctx)
-	_, e = tx.Exec(ctx, "UPDATE users SET verified=$1,qualifications=$2,role=COALESCE(NULLIF($3,''),role),suspended=COALESCE($4,suspended) WHERE id=$5", in.Verified, in.Qualifications, in.Role, in.Suspended, idFrom(r))
+	_, e = tx.Exec(ctx, "UPDATE users SET verified=$1,qualifications=$2,role=COALESCE(NULLIF($3,''),role),suspended=COALESCE($4,suspended)  ,allocation_group=$6 WHERE id=$5", in.Verified, in.Qualifications, in.Role, in.Suspended, idFrom(r), strings.ToLower(strings.TrimSpace(in.AllocationGroup)))
 	if e == nil {
-		e = audit(ctx, tx, u.ID, nil, nil, "member_reviewed", in.Reason)
+		e = audit(ctx, tx, u.ID, nil, nil, "member_reviewed", fmt.Sprintf("Member %d: %s", idFrom(r), in.Reason))
 	}
 	if e == nil {
 		_, e = tx.Exec(ctx, "INSERT INTO notifications(user_id,kind,message) VALUES($1,'verification','Your membership or training verification was updated.')", idFrom(r))

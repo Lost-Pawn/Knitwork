@@ -119,6 +119,10 @@ func (a *App) bookingAction(w http.ResponseWriter, r *http.Request) {
 			fail(w, 409, "too_early", "Check in within 15 minutes of your session, or ask staff to record an early handover reason.")
 			return
 		}
+		if e = checkAllocation(ctx, tx, p, b, b.Operator, true, "Rechecking an approved handover"); e != nil {
+			allocationError(e)
+			return
+		}
 		var n int
 		_ = tx.QueryRow(ctx, "SELECT count(*) FROM bookings WHERE resource_id=$1 AND id<>$2 AND status IN ('in_use','return_pending')", b.Resource, b.ID).Scan(&n)
 		if n > 0 {

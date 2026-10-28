@@ -9,6 +9,7 @@ export type User = {
   locale: string;
   qualifications: string[];
   verification_note: string;
+  allocation_group: string;
 };
 export type Resource = {
   id: number;

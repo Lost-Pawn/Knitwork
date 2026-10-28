@@ -76,7 +76,7 @@ func checkAllocation(ctx context.Context, tx pgx.Tx, p resourcePolicy, b booking
 	}
 	var verified, suspended bool
 	var quals []string
-	if e := tx.QueryRow(ctx, "SELECT verified,suspended,qualifications FROM users WHERE id=$1", b.Borrower).Scan(&verified, &suspended, &quals); e != nil {
+	if e := tx.QueryRow(ctx, "SELECT verified,suspended,qualifications FROM users WHERE id=$1 FOR UPDATE", b.Borrower).Scan(&verified, &suspended, &quals); e != nil {
 		return e
 	}
 	if !verified || suspended {
@@ -105,7 +105,7 @@ func checkAllocation(ctx context.Context, tx pgx.Tx, p resourcePolicy, b booking
 	}
 	var used float64
 	week := weekStart(b.Start)
-	if e := tx.QueryRow(ctx, `SELECT COALESCE(sum(extract(epoch from(ends_at-starts_at))/3600),0) FROM bookings WHERE borrower_id=$1 AND resource_id=$2 AND id<>$3 AND starts_at>=$4 AND starts_at<$5 AND status IN ('approved','in_use','return_pending','completed')`, b.Borrower, b.Resource, b.ID, week, week.AddDate(0, 0, 7)).Scan(&used); e != nil {
+	if e := tx.QueryRow(ctx, `SELECT COALESCE(sum(extract(epoch from(ends_at-starts_at))/3600),0) FROM bookings WHERE (borrower_id=$1 OR borrower_id IN (SELECT id FROM users WHERE allocation_group<>'' AND allocation_group=(SELECT allocation_group FROM users WHERE id=$1))) AND resource_id=$2 AND id<>$3 AND starts_at>=$4 AND starts_at<$5 AND status IN ('approved','in_use','return_pending','completed')`, b.Borrower, b.Resource, b.ID, week, week.AddDate(0, 0, 7)).Scan(&used); e != nil {
 		return e
 	}
 	if used+b.End.Sub(b.Start).Hours() > float64(p.Weekly) {

@@ -14,11 +14,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const userColumns = "id,name,email,role,verified,suspended,business,locale,qualifications,verification_note"
+const userColumns = "id,name,email,role,verified,suspended,business,locale,qualifications,verification_note,allocation_group"
 
 func (a *App) userByID(ctx context.Context, id int64) (*User, error) {
 	u := &User{}
-	e := a.db.QueryRow(ctx, "SELECT "+userColumns+" FROM users WHERE id=$1", id).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Verified, &u.Suspended, &u.Business, &u.Locale, &u.Qualifications, &u.VerificationNote)
+	e := a.db.QueryRow(ctx, "SELECT "+userColumns+" FROM users WHERE id=$1", id).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Verified, &u.Suspended, &u.Business, &u.Locale, &u.Qualifications, &u.VerificationNote, &u.AllocationGroup)
 	return u, e
 }
 func hashToken(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }
