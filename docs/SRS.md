@@ -1,6 +1,6 @@
 # Knitwork Software Requirements Specification
 
-Version 1.0 — 28 October 2026
+Version 1.1 — 28 October 2026
 
 ## Purpose and scope
 
@@ -28,7 +28,7 @@ FR05 Booking requests shall record borrower, resource, purpose, time range, requ
 
 FR06 Approval and extension shall atomically prevent overlapping active allocations of a resource and any assigned operator, including turnaround time. Availability and weekly usage limits shall be rechecked at approval. Operators shall have active status, qualifications and working hours. Approval conflicts produce a readable reason rather than an inconsistent reservation.
 
-FR07 A transparent queue shall order waitlisted requests by original request time. A per member weekly hours cap and earliest eligible waiting request checks shall discourage monopolisation. An owner or manager may override queue order only with a recorded reason; safety constraints cannot be overridden. A cancelled reservation notifies waiting borrowers but does not silently approve them.
+FR07 A transparent queue shall order waitlisted requests by original request time. A per member or staff assigned business group weekly hours cap and earliest eligible waiting request checks shall discourage monopolisation. An owner or manager may override queue order only with a recorded reason; safety constraints cannot be overridden. A cancelled reservation notifies waiting borrowers but does not silently approve them.
 
 FR08 Borrowers or authorised staff shall check in an approved booking with condition notes, checklist acknowledgement and a photograph. The booking must be within its approved session. Only authorised staff may record an early handover with an explicit reason.
 

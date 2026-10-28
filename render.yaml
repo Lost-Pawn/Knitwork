@@ -2,7 +2,7 @@ services:
   - type: web
     name: knitwork
     runtime: docker
-    plan: starter
+    plan: 0.5c-512mb
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
@@ -25,7 +25,9 @@ services:
         sync: false
 databases:
   - name: knitwork-db
-    plan: basic-256mb
+    plan: 0.1c-256mb
     databaseName: knitwork
     user: knitwork
+    diskSizeGB: 5
+    ipAllowList: []
     postgresMajorVersion: '17'
