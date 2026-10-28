@@ -1,6 +1,13 @@
-export const languages = {en:'English',hi:'हिन्दी',mr:'मराठी',bn:'বাংলা',ta:'தமிழ்',te:'తెలుగు'};
-export type Locale=keyof typeof languages;
-const rows=`
+export const languages = {
+  en: "English",
+  hi: "हिन्दी",
+  mr: "मराठी",
+  bn: "বাংলা",
+  ta: "தமிழ்",
+  te: "తెలుగు",
+};
+export type Locale = keyof typeof languages;
+const rows = `
 explore|Explore equipment|उपकरण खोजें|उपकरणे शोधा|সরঞ্জাম খুঁজুন|கருவிகளைத் தேடு|పరికరాలు వెతకండి
 bookings|My bookings|मेरी बुकिंग|माझी आरक्षणे|আমার বুকিং|எனது முன்பதிவுகள்|నా బుకింగ్‌లు
 centre|Centre overview|केंद्र का विवरण|केंद्राचा आढावा|কেন্দ্রের বিবরণ|மையக் கண்ணோட்டம்|కేంద్ర వివరాలు
@@ -145,6 +152,24 @@ booking|Booking|बुकिंग|आरक्षण|বুকিং|முன�
 next_step|Next step|अगला चरण|पुढील पाऊल|পরবর্তী ধাপ|அடுத்த படி|తదుపరి దశ
 no_api|Original content. Generated translation is not configured.|मूल सामग्री। अनुवाद सेवा कॉन्फ़िगर नहीं है।|मूळ मजकूर. अनुवाद सेवा उपलब्ध नाही.|মূল বিষয়বস্তু। অনুবাদ পরিষেবা যুক্ত নেই।|அசல் உள்ளடக்கம். மொழிபெயர்ப்பு சேவை அமைக்கப்படவில்லை.|అసలు సమాచారం. అనువాద సేవ కాన్ఫిగర్ కాలేదు.
 `;
-export const dictionaries:Record<Locale,Record<string,string>>={en:{},hi:{},mr:{},bn:{},ta:{},te:{}};
-for(const row of rows.trim().split('\n')){const [key,...values]=row.split('|');(Object.keys(languages) as Locale[]).forEach((locale,i)=>dictionaries[locale][key]=values[i]);}
-export function translate(locale:Locale,key:string){return dictionaries[locale][key]||dictionaries.en[key]||key.replaceAll('_',' ')}
+export const dictionaries: Record<Locale, Record<string, string>> = {
+  en: {},
+  hi: {},
+  mr: {},
+  bn: {},
+  ta: {},
+  te: {},
+};
+for (const row of rows.trim().split("\n")) {
+  const [key, ...values] = row.split("|");
+  (Object.keys(languages) as Locale[]).forEach(
+    (locale, i) => (dictionaries[locale][key] = values[i]),
+  );
+}
+export function translate(locale: Locale, key: string) {
+  return (
+    dictionaries[locale][key] ||
+    dictionaries.en[key] ||
+    key.replaceAll("_", " ")
+  );
+}

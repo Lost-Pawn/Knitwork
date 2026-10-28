@@ -1,14 +1,319 @@
-'use client';
-import {createContext,useContext,useEffect,useRef,useState} from 'react';
-import {Locale,translate} from '@/lib/i18n';
-import {api,APIError} from '@/lib/api';
-export const UIContext=createContext<{locale:Locale;t:(key:string)=>string;translation:boolean;notify:(s:string)=>void}>({locale:'en',t:k=>k,translation:false,notify:()=>{}});
-export const useUI=()=>useContext(UIContext);
-export function Icon({name,size=20}:{name:string;size?:number}){const paths:Record<string,React.ReactNode>={explore:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,bookings:<><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-14 5h4"/></>,help:<><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5m0 3h.01"/></>,notifications:<><path d="M5 17h14l-2-4V9a5 5 0 0 0-10 0v4zM10 21h4"/></>,profile:<><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></>,centre:<><path d="M3 21V8l9-5 9 5v13M8 21v-7h8v7M7 9h.01M12 9h.01M17 9h.01"/></>,members:<><circle cx="9" cy="8" r="3"/><path d="M2 21v-4a7 7 0 0 1 14 0v4M17 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5"/></>,operators:<><path d="m14 6 4-3 3 3-3 4-4-1-9 12-3-3L14 9z"/></>,arrow:<path d="M4 12h16m-6-6 6 6-6 6"/>,search:<><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></>,check:<path d="m5 12 4 4L20 5"/>,logout:<><path d="M10 4H4v16h6m4-13 5 5-5 5m-6-5h11"/></>,close:<path d="m6 6 12 12M18 6 6 18"/>,plus:<path d="M12 4v16M4 12h16"/>,clock:<><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></>};return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]||paths.explore}</svg>}
-export function Machine({category}:{category:string}){return <svg viewBox="0 0 320 170" className="machine" role="img" aria-label={category}><g fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">{category==='cutting'?<><path d="M35 88 128 38l155 41-96 55z" fill="var(--drawing)"/><path d="M35 88v37m248-46v47m-96 8v27M84 64l137 39M62 78l137 39M127 39l-6 59"/><path d="m169 68 18 7-14 13-17-6z"/><path d="m233 37-20 32m-8-13 18-5"/><circle cx="237" cy="31" r="7"/><circle cx="232" cy="45" r="7"/></>:<><path d="M73 124V65c0-14 8-22 22-22h101c14 0 22 10 22 24v37h-43V81h-58v43z" fill="var(--drawing)"/><path d="M54 126h202v17H54zM94 43V26h25v17M185 43V29h17v14M188 104v20m-10-8h20M217 79h18V58h-19"/><circle cx="95" cy="73" r="13"/><path d="M89 73h12m-6-6v12M137 55h38M139 62h25"/>{category==='embroidery'?<><rect x="126" y="111" width="94" height="28" rx="10"/><path d="m146 122 10-5 11 10 10-8 13 6m-30-74v28"/></>:<path d="m173 124 33 22h44m-15-84v44m-69 7h-23"/>}</>}</g><path d="M26 155h266" stroke="currentColor" strokeWidth="1" opacity=".25"/></svg>}
-export function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="field"><span>{label}</span>{children}</label>}
-export function Status({value}:{value:string}){const{t}=useUI();return <span className={'status status-'+value}><i/>{t(value)}</span>}
-export function Empty(){const{t}=useUI();return <div className="empty"><Icon name="bookings" size={30}/><p>{t('empty')}</p></div>}
-export function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){const{t}=useUI();const ref=useRef<HTMLDivElement>(null);useEffect(()=>{const previous=document.activeElement as HTMLElement;const old=document.body.style.overflow;document.body.style.overflow='hidden';ref.current?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose();if(e.key==='Tab'){const els=ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]');if(!els?.length)return;const first=els[0],last=els[els.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===ref.current)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}};document.addEventListener('keydown',key);return()=>{document.body.style.overflow=old;document.removeEventListener('keydown',key);previous?.focus()}},[onClose]);return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} ref={ref}><div className="modal-heading"><h2 id="modal-title">{title}</h2><button className="icon-button" onClick={onClose} aria-label={t('close')}><Icon name="close"/></button></div>{children}</div></div>}
-export function TextContent({text}:{text:string}){const{locale,t,translation,notify}=useUI();const [translated,setTranslated]=useState('');const[busy,setBusy]=useState(false);useEffect(()=>setTranslated(''),[locale,text]);return <div className="user-content"><p className="preserve">{translated||text}</p>{locale!=='en'&&text&&<>{translated?<small>{t('translated')} <button className="text-button" onClick={()=>setTranslated('')}>{t('original')}</button></small>:translation?<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const r=await api<{text:string}>('/translate','POST',{text,locale});setTranslated(r.text)}catch{notify(t('error'))}finally{setBusy(false)}}}>{t(busy?'loading':'translate')}</button>:<small className="muted">{t('no_api')}</small>}</>}</div>}
-export function ErrorBox({error}:{error:unknown}){const{locale,t}=useUI();if(!error)return null;return <div className="error" role="alert">{locale==='en'&&error instanceof Error?error.message:t('error')}{locale!=='en'&&error instanceof APIError&&<details><summary>{t('original')}</summary>{error.message}</details>}</div>}
+"use client";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Locale, translate } from "@/lib/i18n";
+import { api, APIError } from "@/lib/api";
+export const UIContext = createContext<{
+  locale: Locale;
+  t: (key: string) => string;
+  translation: boolean;
+  notify: (s: string) => void;
+}>({ locale: "en", t: (k) => k, translation: false, notify: () => {} });
+export const useUI = () => useContext(UIContext);
+export function Icon({ name, size = 20 }: { name: string; size?: number }) {
+  const paths: Record<string, React.ReactNode> = {
+    explore: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
+        <rect x="14" y="14" width="7" height="7" rx="2" />
+      </>
+    ),
+    bookings: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="3" />
+        <path d="M7 3v4m10-4v4M3 11h18m-14 5h4" />
+      </>
+    ),
+    help: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5m0 3h.01" />
+      </>
+    ),
+    notifications: (
+      <>
+        <path d="M5 17h14l-2-4V9a5 5 0 0 0-10 0v4zM10 21h4" />
+      </>
+    ),
+    profile: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 22v-3a8 8 0 0 1 16 0v3" />
+      </>
+    ),
+    centre: (
+      <>
+        <path d="M3 21V8l9-5 9 5v13M8 21v-7h8v7M7 9h.01M12 9h.01M17 9h.01" />
+      </>
+    ),
+    members: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M2 21v-4a7 7 0 0 1 14 0v4M17 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5" />
+      </>
+    ),
+    operators: (
+      <>
+        <path d="m14 6 4-3 3 3-3 4-4-1-9 12-3-3L14 9z" />
+      </>
+    ),
+    arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
+    search: (
+      <>
+        <circle cx="10" cy="10" r="6" />
+        <path d="m15 15 6 6" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L20 5" />,
+    logout: (
+      <>
+        <path d="M10 4H4v16h6m4-13 5 5-5 5m-6-5h11" />
+      </>
+    ),
+    close: <path d="m6 6 12 12M18 6 6 18" />,
+    plus: <path d="M12 4v16M4 12h16" />,
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 6v6l4 2" />
+      </>
+    ),
+  };
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name] || paths.explore}
+    </svg>
+  );
+}
+export function Machine({ category }: { category: string }) {
+  return (
+    <svg
+      viewBox="0 0 320 170"
+      className="machine"
+      role="img"
+      aria-label={category}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {category === "cutting" ? (
+          <>
+            <path d="M35 88 128 38l155 41-96 55z" fill="var(--drawing)" />
+            <path d="M35 88v37m248-46v47m-96 8v27M84 64l137 39M62 78l137 39M127 39l-6 59" />
+            <path d="m169 68 18 7-14 13-17-6z" />
+            <path d="m233 37-20 32m-8-13 18-5" />
+            <circle cx="237" cy="31" r="7" />
+            <circle cx="232" cy="45" r="7" />
+          </>
+        ) : (
+          <>
+            <path
+              d="M73 124V65c0-14 8-22 22-22h101c14 0 22 10 22 24v37h-43V81h-58v43z"
+              fill="var(--drawing)"
+            />
+            <path d="M54 126h202v17H54zM94 43V26h25v17M185 43V29h17v14M188 104v20m-10-8h20M217 79h18V58h-19" />
+            <circle cx="95" cy="73" r="13" />
+            <path d="M89 73h12m-6-6v12M137 55h38M139 62h25" />
+            {category === "embroidery" ? (
+              <>
+                <rect x="126" y="111" width="94" height="28" rx="10" />
+                <path d="m146 122 10-5 11 10 10-8 13 6m-30-74v28" />
+              </>
+            ) : (
+              <path d="m173 124 33 22h44m-15-84v44m-69 7h-23" />
+            )}
+          </>
+        )}
+      </g>
+      <path
+        d="M26 155h266"
+        stroke="currentColor"
+        strokeWidth="1"
+        opacity=".25"
+      />
+    </svg>
+  );
+}
+export function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+export function Status({ value }: { value: string }) {
+  const { t } = useUI();
+  return (
+    <span className={"status status-" + value}>
+      <i />
+      {t(value)}
+    </span>
+  );
+}
+export function Empty() {
+  const { t } = useUI();
+  return (
+    <div className="empty">
+      <Icon name="bookings" size={30} />
+      <p>{t("empty")}</p>
+    </div>
+  );
+}
+export function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const { t } = useUI();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    ref.current?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const els = ref.current?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]",
+        );
+        if (!els?.length) return;
+        const first = els[0],
+          last = els[els.length - 1];
+        if (
+          e.shiftKey &&
+          (document.activeElement === first ||
+            document.activeElement === ref.current)
+        ) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = old;
+      document.removeEventListener("keydown", key);
+      previous?.focus();
+    };
+  }, [onClose]);
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        tabIndex={-1}
+        ref={ref}
+      >
+        <div className="modal-heading">
+          <h2 id="modal-title">{title}</h2>
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label={t("close")}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+export function TextContent({ text }: { text: string }) {
+  const { locale, t, translation, notify } = useUI();
+  const [translated, setTranslated] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setTranslated(""), [locale, text]);
+  return (
+    <div className="user-content">
+      <p className="preserve">{translated || text}</p>
+      {locale !== "en" && text && (
+        <>
+          {translated ? (
+            <small>
+              {t("translated")}{" "}
+              <button className="text-button" onClick={() => setTranslated("")}>
+                {t("original")}
+              </button>
+            </small>
+          ) : translation ? (
+            <button
+              className="text-button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const r = await api<{ text: string }>("/translate", "POST", {
+                    text,
+                    locale,
+                  });
+                  setTranslated(r.text);
+                } catch {
+                  notify(t("error"));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {t(busy ? "loading" : "translate")}
+            </button>
+          ) : (
+            <small className="muted">{t("no_api")}</small>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+export function ErrorBox({ error }: { error: unknown }) {
+  const { locale, t } = useUI();
+  if (!error) return null;
+  return (
+    <div className="error" role="alert">
+      {locale === "en" && error instanceof Error ? error.message : t("error")}
+      {locale !== "en" && error instanceof APIError && (
+        <details>
+          <summary>{t("original")}</summary>
+          {error.message}
+        </details>
+      )}
+    </div>
+  );
+}

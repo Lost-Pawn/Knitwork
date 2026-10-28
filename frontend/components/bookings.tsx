@@ -1,14 +1,440 @@
-'use client';
-import {useCallback,useEffect,useState} from 'react';
-import {api,canManage,indianDate,readPhoto} from '@/lib/api';
-import {Booking,Detail,Operator,User} from '@/lib/types';
-import {Empty,ErrorBox,Field,Icon,Modal,Status,TextContent,useUI} from './ui';
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { api, canManage, indianDate, readPhoto } from "@/lib/api";
+import { Booking, Detail, Operator, User } from "@/lib/types";
+import {
+  Empty,
+  ErrorBox,
+  Field,
+  Icon,
+  Modal,
+  Status,
+  TextContent,
+  useUI,
+} from "./ui";
 
-export default function Bookings({user,bookings,operators,onChange,initialID}:{user:User;bookings:Booking[];operators:Operator[];onChange:()=>Promise<void>;initialID?:number}){const{t,locale,notify}=useUI();const[selected,setSelected]=useState<Booking|null>(null);const[detail,setDetail]=useState<Detail|null>(null);const[action,setAction]=useState('');const[error,setError]=useState<unknown>(null);const[busy,setBusy]=useState(false);const[filter,setFilter]=useState('all');const[photo,setPhoto]=useState('');const close=useCallback(()=>{setSelected(null);setAction('');setError(null);setPhoto('')},[]);useEffect(()=>{if(initialID)setSelected(bookings.find(b=>b.id===initialID)||null)},[initialID,bookings]);useEffect(()=>{setDetail(null);if(selected)api<Detail>(`/bookings/${selected.id}`).then(setDetail).catch(setError)},[selected]);
- async function perform(e:React.FormEvent<HTMLFormElement>){e.preventDefault();if(!selected)return;setBusy(true);setError(null);const f=new FormData(e.currentTarget);try{if(action==='incident'){await api('/incidents','POST',{booking_id:selected.id,kind:f.get('kind'),description:f.get('reason')})}else{const body:Record<string,unknown>={action,reason:f.get('reason')||'',note:f.get('note')||'',checklist:f.get('checklist')==='on',damaged:f.get('damaged')==='on',override:f.get('override')==='on'};if(action==='approve')body.operator_id=f.get('operator_id')?Number(f.get('operator_id')):null;if(action==='extend')body.end=new Date(String(f.get('end'))+':00+05:30').toISOString();if(['checkin','return'].includes(action))body.image=photo;await api(`/bookings/${selected.id}/actions`,'POST',body)}await onChange();close();notify(t('saved'))}catch(err){setError(err)}finally{setBusy(false)}}
- const visible=bookings.filter(b=>filter==='all'||b.status===filter);return <><div className="page-intro"><div className="eyebrow">{t('shared_centre')}</div><h1>{t('bookings')}</h1><p>{t('review_needed')}</p></div><div className="filters"><select aria-label={t('bookings')} value={filter} onChange={e=>setFilter(e.target.value)}>{['all','requested','waitlisted','approved','in_use','return_pending','completed','cancelled','rejected'].map(s=><option key={s} value={s}>{t(s)}</option>)}</select><small>{t('timezone')}</small><button className="text-button" onClick={()=>onChange()}>{t('refresh')}</button></div><div className="booking-list">{visible.map(b=><button className="booking-row" key={b.id} onClick={()=>{setSelected(b);setAction('');setError(null)}}><div className={'booking-symbol '+b.category}><Icon name="bookings" size={25}/></div><div className="booking-main"><h3>{b.resource_name}</h3><p>{indianDate(b.starts_at,locale)} · {b.borrower_name}</p><small>#{b.id} {b.assisted&&'· '+t('assistance')}</small></div><div className="booking-end"><Status value={b.status}/><strong>₹{b.estimate}</strong></div><Icon name="arrow"/></button>)}</div>{!visible.length&&<Empty/>}
- {selected&&<Modal title={`${t('booking')} #${selected.id}`} onClose={close}><Status value={selected.status}/><h3 className="detail-name">{selected.resource_name}</h3><p>{selected.borrower_name}</p><p className="muted">{indianDate(selected.starts_at,locale)} — {indianDate(selected.ends_at,locale)}</p><TextContent text={selected.purpose}/><div className="facts"><div>{t('estimate')}<strong>₹{selected.estimate}</strong></div><div>{t('operator')}<strong>{selected.operator_name||t('none')}</strong></div>{selected.status==='waitlisted'&&<div>{t('queue')}<strong>{selected.queue_position}</strong></div>}</div>{selected.decision_reason&&<div className="notice"><TextContent text={selected.decision_reason}/></div>}{selected.payment_note&&<TextContent text={selected.payment_note}/>} {selected.extension_end&&<div className="notice"><strong>{t('extend')}</strong><p>{indianDate(selected.extension_end,locale)}</p><TextContent text={selected.extension_reason}/></div>}
- <div className="action-grid">{(()=>{const manager=canManage(user.role,user.id,selected.owner_id);const pending=['requested','waitlisted'].includes(selected.status);const actions:string[]=[];if(manager&&pending)actions.push('approve','waitlist','reject');if(pending||selected.status==='approved')actions.push('cancel');if(selected.status==='approved')actions.push('checkin');if(selected.status==='in_use')actions.push('return');if(['approved','in_use'].includes(selected.status)&&!selected.extension_end)actions.push('extend');if(manager&&selected.extension_end)actions.push('approve_extension','reject_extension');if(manager&&selected.status==='return_pending')actions.push('confirm_return');actions.push('incident');if(manager)actions.push('payment');return actions.map(a=><button key={a} className={action===a?'primary':'secondary'} onClick={()=>{setAction(a);setPhoto('');setError(null)}}>{t(a)}</button>)})()}</div>
- {action&&<form className="form action-form" onSubmit={perform}><h3>{t(action)}</h3>{action==='approve'&&<><Field label={t('operator')}><select name="operator_id" defaultValue={selected.operator_id||''}><option value="">{t('none')}</option>{operators.filter(o=>o.active).map(o=><option key={o.id} value={o.id}>{o.name} · {o.qualifications.join(', ')}</option>)}</select></Field><label className="check-inline"><input type="checkbox" name="override"/>{t('override')}</label></>}{action==='approve_extension'&&<label className="check-inline"><input type="checkbox" name="override"/>{t('override')}</label>}{action==='extend'&&<Field label={t('end')}><input type="datetime-local" name="end" required/></Field>}{action==='incident'&&<Field label={t('category')}><select name="kind">{['damage','delay','conflict','other'].map(k=><option key={k} value={k}>{t(k)}</option>)}</select></Field>}<Field label={t('reason')}><textarea name="reason" required minLength={5} maxLength={2000}/></Field>{['checkin','return'].includes(action)&&<><Field label={t('condition')}><textarea name="note" required minLength={3} maxLength={2000}/></Field><Field label={t('photo')}><input type="file" accept="image/png,image/jpeg,image/webp" required onChange={async e=>{if(e.target.files?.[0]){try{setPhoto(await readPhoto(e.target.files[0]));setError(null)}catch(err){setPhoto('');setError(err)}}}}/></Field>{photo&&<img className="photo-preview" src={photo} alt={t('condition')}/>}<label className="check-inline"><input type="checkbox" name="checklist" required/>{t('checklist')}</label>{action==='return'&&<label className="check-inline"><input type="checkbox" name="damaged"/>{t('damaged')}</label>}</>}<ErrorBox error={error}/><button className="primary" disabled={busy||(['checkin','return'].includes(action)&&!photo)}>{t(busy?'loading':'submit')}</button></form>}
- {detail&&<><h3>{t('condition')}</h3><div className="condition-grid">{detail.conditions.map(c=><div key={c.id}><h4>{t(c.phase)}</h4><img src={c.image_url} alt={t(c.phase)} className="condition-photo"/><TextContent text={c.note}/>{c.damaged&&<Status value="damage"/>}</div>)}</div><h3>{t('incidents')}</h3>{detail.incidents.map(i=><div className="incident" key={i.id}><Status value={i.status}/><strong>{t(i.kind)}</strong><TextContent text={i.description}/>{i.resolution&&<TextContent text={i.resolution}/>}<form onSubmit={async e=>{e.preventDefault();setBusy(true);const f=new FormData(e.currentTarget);try{await api(`/incidents/${i.id}`,'PATCH',{status:f.get('status'),resolution:f.get('resolution')});setDetail(await api<Detail>(`/bookings/${selected.id}`));await onChange();notify(t('saved'))}catch(err){setError(err)}finally{setBusy(false)}}}><Field label={t('reason')}><textarea name="resolution" required minLength={5}/></Field><div className="inline-fields"><select name="status">{canManage(user.role,user.id,selected.owner_id)&&<option value="resolved">{t('resolve')}</option>}<option value="escalated">{t('escalate')}</option></select><button className="secondary" disabled={busy}>{t('submit')}</button></div></form></div>)}<h3>{t('history')}</h3><ol className="timeline">{detail.audit.map(a=><li key={a.id}><div className="timeline-dot"/><div><strong>{t(a.action)}</strong><small>{a.actor_name} · {indianDate(a.created_at,locale)}</small>{a.detail&&<TextContent text={a.detail}/>}</div></li>)}</ol></>}{!action&&<ErrorBox error={error}/>}</Modal>}
- </>}
+export default function Bookings({
+  user,
+  bookings,
+  operators,
+  onChange,
+  initialID,
+}: {
+  user: User;
+  bookings: Booking[];
+  operators: Operator[];
+  onChange: () => Promise<void>;
+  initialID?: number;
+}) {
+  const { t, locale, notify } = useUI();
+  const [selected, setSelected] = useState<Booking | null>(null);
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [action, setAction] = useState("");
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [photo, setPhoto] = useState("");
+  const close = useCallback(() => {
+    setSelected(null);
+    setAction("");
+    setError(null);
+    setPhoto("");
+  }, []);
+  useEffect(() => {
+    if (initialID)
+      setSelected(bookings.find((b) => b.id === initialID) || null);
+  }, [initialID, bookings]);
+  useEffect(() => {
+    setDetail(null);
+    if (selected)
+      api<Detail>(`/bookings/${selected.id}`).then(setDetail).catch(setError);
+  }, [selected]);
+  async function perform(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    const f = new FormData(e.currentTarget);
+    try {
+      if (action === "incident") {
+        await api("/incidents", "POST", {
+          booking_id: selected.id,
+          kind: f.get("kind"),
+          description: f.get("reason"),
+        });
+      } else {
+        const body: Record<string, unknown> = {
+          action,
+          reason: f.get("reason") || "",
+          note: f.get("note") || "",
+          checklist: f.get("checklist") === "on",
+          damaged: f.get("damaged") === "on",
+          override: f.get("override") === "on",
+        };
+        if (action === "approve")
+          body.operator_id = f.get("operator_id")
+            ? Number(f.get("operator_id"))
+            : null;
+        if (action === "extend")
+          body.end = new Date(String(f.get("end")) + ":00+05:30").toISOString();
+        if (["checkin", "return"].includes(action)) body.image = photo;
+        await api(`/bookings/${selected.id}/actions`, "POST", body);
+      }
+      await onChange();
+      close();
+      notify(t("saved"));
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const visible = bookings.filter(
+    (b) => filter === "all" || b.status === filter,
+  );
+  return (
+    <>
+      <div className="page-intro">
+        <div className="eyebrow">{t("shared_centre")}</div>
+        <h1>{t("bookings")}</h1>
+        <p>{t("review_needed")}</p>
+      </div>
+      <div className="filters">
+        <select
+          aria-label={t("bookings")}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          {[
+            "all",
+            "requested",
+            "waitlisted",
+            "approved",
+            "in_use",
+            "return_pending",
+            "completed",
+            "cancelled",
+            "rejected",
+          ].map((s) => (
+            <option key={s} value={s}>
+              {t(s)}
+            </option>
+          ))}
+        </select>
+        <small>{t("timezone")}</small>
+        <button className="text-button" onClick={() => onChange()}>
+          {t("refresh")}
+        </button>
+      </div>
+      <div className="booking-list">
+        {visible.map((b) => (
+          <button
+            className="booking-row"
+            key={b.id}
+            onClick={() => {
+              setSelected(b);
+              setAction("");
+              setError(null);
+            }}
+          >
+            <div className={"booking-symbol " + b.category}>
+              <Icon name="bookings" size={25} />
+            </div>
+            <div className="booking-main">
+              <h3>{b.resource_name}</h3>
+              <p>
+                {indianDate(b.starts_at, locale)} · {b.borrower_name}
+              </p>
+              <small>
+                #{b.id} {b.assisted && "· " + t("assistance")}
+              </small>
+            </div>
+            <div className="booking-end">
+              <Status value={b.status} />
+              <strong>₹{b.estimate}</strong>
+            </div>
+            <Icon name="arrow" />
+          </button>
+        ))}
+      </div>
+      {!visible.length && <Empty />}
+      {selected && (
+        <Modal title={`${t("booking")} #${selected.id}`} onClose={close}>
+          <Status value={selected.status} />
+          <h3 className="detail-name">{selected.resource_name}</h3>
+          <p>{selected.borrower_name}</p>
+          <p className="muted">
+            {indianDate(selected.starts_at, locale)} —{" "}
+            {indianDate(selected.ends_at, locale)}
+          </p>
+          <TextContent text={selected.purpose} />
+          <div className="facts">
+            <div>
+              {t("estimate")}
+              <strong>₹{selected.estimate}</strong>
+            </div>
+            <div>
+              {t("operator")}
+              <strong>{selected.operator_name || t("none")}</strong>
+            </div>
+            {selected.status === "waitlisted" && (
+              <div>
+                {t("queue")}
+                <strong>{selected.queue_position}</strong>
+              </div>
+            )}
+          </div>
+          {selected.decision_reason && (
+            <div className="notice">
+              <TextContent text={selected.decision_reason} />
+            </div>
+          )}
+          {selected.payment_note && (
+            <TextContent text={selected.payment_note} />
+          )}{" "}
+          {selected.extension_end && (
+            <div className="notice">
+              <strong>{t("extend")}</strong>
+              <p>{indianDate(selected.extension_end, locale)}</p>
+              <TextContent text={selected.extension_reason} />
+            </div>
+          )}
+          <div className="action-grid">
+            {(() => {
+              const manager = canManage(user.role, user.id, selected.owner_id);
+              const pending = ["requested", "waitlisted"].includes(
+                selected.status,
+              );
+              const actions: string[] = [];
+              if (manager && pending)
+                actions.push("approve", "waitlist", "reject");
+              if (pending || selected.status === "approved")
+                actions.push("cancel");
+              if (selected.status === "approved") actions.push("checkin");
+              if (selected.status === "in_use") actions.push("return");
+              if (
+                ["approved", "in_use"].includes(selected.status) &&
+                !selected.extension_end
+              )
+                actions.push("extend");
+              if (manager && selected.extension_end)
+                actions.push("approve_extension", "reject_extension");
+              if (manager && selected.status === "return_pending")
+                actions.push("confirm_return");
+              actions.push("incident");
+              if (manager) actions.push("payment");
+              return actions.map((a) => (
+                <button
+                  key={a}
+                  className={action === a ? "primary" : "secondary"}
+                  onClick={() => {
+                    setAction(a);
+                    setPhoto("");
+                    setError(null);
+                  }}
+                >
+                  {t(a)}
+                </button>
+              ));
+            })()}
+          </div>
+          {action && (
+            <form className="form action-form" onSubmit={perform}>
+              <h3>{t(action)}</h3>
+              {action === "approve" && (
+                <>
+                  <Field label={t("operator")}>
+                    <select
+                      name="operator_id"
+                      defaultValue={selected.operator_id || ""}
+                    >
+                      <option value="">{t("none")}</option>
+                      {operators
+                        .filter((o) => o.active)
+                        .map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name} · {o.qualifications.join(", ")}
+                          </option>
+                        ))}
+                    </select>
+                  </Field>
+                  <label className="check-inline">
+                    <input type="checkbox" name="override" />
+                    {t("override")}
+                  </label>
+                </>
+              )}
+              {action === "approve_extension" && (
+                <label className="check-inline">
+                  <input type="checkbox" name="override" />
+                  {t("override")}
+                </label>
+              )}
+              {action === "extend" && (
+                <Field label={t("end")}>
+                  <input type="datetime-local" name="end" required />
+                </Field>
+              )}
+              {action === "incident" && (
+                <Field label={t("category")}>
+                  <select name="kind">
+                    {["damage", "delay", "conflict", "other"].map((k) => (
+                      <option key={k} value={k}>
+                        {t(k)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              <Field label={t("reason")}>
+                <textarea
+                  name="reason"
+                  required
+                  minLength={5}
+                  maxLength={2000}
+                />
+              </Field>
+              {["checkin", "return"].includes(action) && (
+                <>
+                  <Field label={t("condition")}>
+                    <textarea
+                      name="note"
+                      required
+                      minLength={3}
+                      maxLength={2000}
+                    />
+                  </Field>
+                  <Field label={t("photo")}>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      required
+                      onChange={async (e) => {
+                        if (e.target.files?.[0]) {
+                          try {
+                            setPhoto(await readPhoto(e.target.files[0]));
+                            setError(null);
+                          } catch (err) {
+                            setPhoto("");
+                            setError(err);
+                          }
+                        }
+                      }}
+                    />
+                  </Field>
+                  {photo && (
+                    <img
+                      className="photo-preview"
+                      src={photo}
+                      alt={t("condition")}
+                    />
+                  )}
+                  <label className="check-inline">
+                    <input type="checkbox" name="checklist" required />
+                    {t("checklist")}
+                  </label>
+                  {action === "return" && (
+                    <label className="check-inline">
+                      <input type="checkbox" name="damaged" />
+                      {t("damaged")}
+                    </label>
+                  )}
+                </>
+              )}
+              <ErrorBox error={error} />
+              <button
+                className="primary"
+                disabled={
+                  busy || (["checkin", "return"].includes(action) && !photo)
+                }
+              >
+                {t(busy ? "loading" : "submit")}
+              </button>
+            </form>
+          )}
+          {detail && (
+            <>
+              <h3>{t("condition")}</h3>
+              <div className="condition-grid">
+                {detail.conditions.map((c) => (
+                  <div key={c.id}>
+                    <h4>{t(c.phase)}</h4>
+                    <img
+                      src={c.image_url}
+                      alt={t(c.phase)}
+                      className="condition-photo"
+                    />
+                    <TextContent text={c.note} />
+                    {c.damaged && <Status value="damage" />}
+                  </div>
+                ))}
+              </div>
+              <h3>{t("incidents")}</h3>
+              {detail.incidents.map((i) => (
+                <div className="incident" key={i.id}>
+                  <Status value={i.status} />
+                  <strong>{t(i.kind)}</strong>
+                  <TextContent text={i.description} />
+                  {i.resolution && <TextContent text={i.resolution} />}
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setBusy(true);
+                      const f = new FormData(e.currentTarget);
+                      try {
+                        await api(`/incidents/${i.id}`, "PATCH", {
+                          status: f.get("status"),
+                          resolution: f.get("resolution"),
+                        });
+                        setDetail(
+                          await api<Detail>(`/bookings/${selected.id}`),
+                        );
+                        await onChange();
+                        notify(t("saved"));
+                      } catch (err) {
+                        setError(err);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    <Field label={t("reason")}>
+                      <textarea name="resolution" required minLength={5} />
+                    </Field>
+                    <div className="inline-fields">
+                      <select name="status">
+                        {canManage(user.role, user.id, selected.owner_id) && (
+                          <option value="resolved">{t("resolve")}</option>
+                        )}
+                        <option value="escalated">{t("escalate")}</option>
+                      </select>
+                      <button className="secondary" disabled={busy}>
+                        {t("submit")}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ))}
+              <h3>{t("history")}</h3>
+              <ol className="timeline">
+                {detail.audit.map((a) => (
+                  <li key={a.id}>
+                    <div className="timeline-dot" />
+                    <div>
+                      <strong>{t(a.action)}</strong>
+                      <small>
+                        {a.actor_name} · {indianDate(a.created_at, locale)}
+                      </small>
+                      {a.detail && <TextContent text={a.detail} />}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          {!action && <ErrorBox error={error} />}
+        </Modal>
+      )}
+    </>
+  );
+}
