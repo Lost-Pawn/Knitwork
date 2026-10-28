@@ -9,7 +9,7 @@ Knitwork enables a shared garment production centre to lend access to embroidery
 ## People and permissions
 
 - Borrowers register, maintain a profile, request verification, discover resources, request bookings and extensions, check in, submit return records and report incidents.
-- Owners list and manage their resources and review associated requests, condition reports and incidents.
+- Verified owners list and manage their resources and review associated requests, condition reports and incidents.
 - Managers coordinate all centre resources, operators, verification, waiting lists and maintenance.
 - Administrators additionally manage account roles and suspension. Public registration always creates an unverified borrower.
 - A manager may record an assisted request for a verified borrower; the audit trail identifies both actors.
@@ -18,7 +18,7 @@ Knitwork enables a shared garment production centre to lend access to embroidery
 
 FR01 Authentication shall use hashed passwords and revocable expiring server sessions in secure production cookies. Accounts expose membership verification, training approvals and role. Credentials and uploaded evidence shall not be public.
 
-FR02 Owners shall list a resource with category, description, location, operating hours, availability date window, maximum session duration, weekly usage cap, training requirements, operator policy, usage conditions, hourly rate and deposit terms. Resources can be paused for maintenance.
+FR02 Verified owners or authorised centre staff shall list a resource with category, description, location, operating hours, availability date window, maximum session duration, weekly usage cap, training requirements, operator policy, usage conditions, hourly rate and deposit terms. Resources can be paused for maintenance.
 
 FR03 Borrowers shall search and filter resources by text, category and operational availability, inspect access requirements and view occupied periods before requesting a time. Times shall be displayed in the centre timezone with explicit date and time.
 
