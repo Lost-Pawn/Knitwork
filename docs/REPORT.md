@@ -24,7 +24,7 @@ A proposed first adopter is one centre with equipment already in place and a kno
 - Administrators manage account roles and suspension and review escalated disputes.
 - Operators are scheduled resources with recorded qualifications and working hours. They do not receive automatic permission from the chatbot.
 
-Public registration creates an unverified borrower. Privileged roles are assigned by an administrator, and API permissions are checked independently of what the interface displays.
+Public registration creates an unverified borrower. Privileged roles are assigned by an administrator, owners must also be verified before listing equipment, and API permissions are checked independently of what the interface displays.
 
 ## Core features implemented
 
@@ -70,9 +70,11 @@ The Render blueprint declares a Docker web service and managed PostgreSQL with p
 
 The Next.js production build and TypeScript checks passed. Go unit and integration tests passed, including a run with the race detector and static analysis with go vet. The disposable Docker Compose test environment also completed successfully. The six locale dictionaries passed automated checks for matching, non-empty message keys. A multi-stage Docker image was built successfully.
 
-Integration tests cover the complete supervised sharing journey; anonymous and cross-role access; private photo protection; simultaneous approvals; operator collisions across machines; waiting-list exceptions; shared business quotas; eligibility revocation; conflicting extensions; damaged returns and maintenance release; reminder deduplication; session revocation; help retrieval; and mocked provider generation and failure fallback.
+Integration tests cover verified owner listing and its audit entry; the complete supervised sharing journey; anonymous and cross-role access; private photo protection; simultaneous approvals; operator collisions across machines; waiting-list exceptions; shared business quotas; eligibility revocation; conflicting extensions; damaged returns and maintenance release; reminder deduplication; session revocation; help retrieval; and mocked provider generation and failure fallback.
 
-A real external model account and a hosted Render deployment have not been exercised. Browser automation was initially denied access to the local site; browser visual and interactive verification must be recorded separately when permission is available. Automated API tests establish server behaviour, not every aspect of interface usability or accessibility.
+A separate HTTP smoke test exercised the running Docker container from request through supervised approval, photo check-in, photo return and confirmation. It produced a completed booking, two stored condition images and five audit events. Both the app and database containers were then recreated while retaining the named volume. Record counts and content digests were unchanged; authenticated downloads of both images retained identical SHA-256 hashes. The condition images are explicitly labelled synthetic fixtures, and the booking records no real equipment use.
+
+A real external model account and a hosted Render deployment have not been exercised. Visual and interactive browser verification was not completed. Automated API tests establish server behaviour, not every aspect of interface usability or accessibility.
 
 ## Strengths and limitations
 
